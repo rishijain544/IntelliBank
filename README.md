@@ -1,4 +1,4 @@
-# IntelliBank — ML-Driven Banking Platform
+# IntelliBank — AI-Powered Banking for Everyone
 
 > **Educational / portfolio project.** This is a **simulated** banking system. It holds no real
 > money, is not connected to any payment network, is not a licensed financial institution, and
