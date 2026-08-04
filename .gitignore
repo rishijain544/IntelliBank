@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Environment / secrets
+# NEVER commit .env — it holds the Gemini API key and the JWT signing secret.
+.env
+.env.local
+.env.*.local
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
+# Database — regenerate with: python manage.py reset
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Trained ML models ARE committed (~2 MB) so a fresh clone runs immediately
+# instead of requiring a ~10 minute training run. The datasets they were trained
+# on are not: those are ~258 MB and fully reproducible from the seeded
+# generators via `python -m app.ml.train --all`.
+data/generated/
+
+# Real Kaggle datasets are large and separately licensed.
+data/raw/*.csv
+!data/raw/.gitkeep
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+.eslintcache
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*

@@ -1,0 +1,49 @@
+{
+  "generated_at": "2026-07-31T17:01:49.613490+00:00",
+  "models": {
+    "fraud_xgb": {
+      "version": "1.0.0",
+      "n_features": 24,
+      "threshold": 0.15409234166145325,
+      "threshold_rationale": "max recall subject to precision >= 0.80",
+      "algorithm": "XGBClassifier",
+      "metrics": {
+        "threshold": 0.154092,
+        "support": {
+          "total": 129883,
+          "positives": 575,
+          "negatives": 129308
+        },
+        "positive_rate": 0.004427,
+        "roc_auc": 0.9995,
+        "pr_auc": 0.9648,
+        "brier": 0.000486,
+        "gini": 0.999,
+        "ks_statistic": 0.9754,
+        "precision": 0.8497,
+        "recall": 0.9339,
+        "f1": 0.8898,
+        "accuracy": 0.999,
+        "confusion_matrix": {
+          "tn": 129213,
+          "fp": 95,
+          "fn": 38,
+          "tp": 537
+        },
+        "specificity": 0.9993,
+        "false_positive_rate": 0.0007,
+        "alerts_per_1000": 4.87,
+        "lift_top_decile": 10.0,
+        "precision_at_100": 1.0
+      },
+      "latency": {
+        "n": 300,
+        "mean_ms": 1.717,
+        "p50_ms": 1.398,
+        "p95_ms": 3.694,
+        "p99_ms": 6.831,
+        "max_ms": 27.055
+      }
+    }
+  }
+}

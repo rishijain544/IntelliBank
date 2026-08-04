@@ -1,0 +1,370 @@
+@import 'tailwindcss';
+
+/*
+ * ===========================================================================
+ * IntelliBank design system
+ * ===========================================================================
+ *
+ * Every colour and font in the app resolves to a token defined here. Components
+ * reference semantic utilities (`bg-surface`, `text-muted`, `text-intelligence`)
+ * rather than raw values, so the palette can be changed in one place.
+ *
+ * The colour coding carries meaning, and that meaning is the point:
+ *
+ *   gold          premium / trust surfaces — primary actions, active nav,
+ *                 borders on accounts, cards and loans
+ *   intelligence  AI output ONLY — fraud scores, anomaly callouts, credit
+ *                 decision reasoning, the assistant, any "live"/"AI" badge.
+ *                 If it is not literally model output, it must not be teal.
+ *   alert         fraud flags, errors, destructive actions only
+ *
+ * Two tokens were added beyond the supplied palette, because a ledger needs
+ * them and overloading gold or intelligence would break the coding above:
+ *   positive      credits / inflows (muted sage, deliberately not the vivid
+ *                 teal, so money-in is never confused with AI output)
+ *   warning       held funds, pending review, KYC prompts
+ */
+
+@theme {
+  /* ---- surfaces ------------------------------------------------------- */
+  --color-ink: #0b0e14;
+  --color-surface: #141926;
+  --color-surface-raised: #1b2233;
+  /* Hairline borders and dividers, derived from the raised surface. */
+  --color-line: #232b3e;
+  --color-line-strong: #2e3852;
+
+  /* ---- text ----------------------------------------------------------- */
+  /*
+   * Declared twice on purpose. Tailwind derives utility names from the token
+   * name, so `--color-text-primary` yields `text-text-primary`. The short
+   * aliases below give the readable `text-primary` / `text-muted` utilities
+   * while the spec-mandated `--color-text-*` names remain available to
+   * hand-written CSS and inline styles.
+   */
+  --color-text-primary: #f2f0e8;
+  --color-text-muted: #8b92a5;
+  --color-text-faint: #5d6478;
+
+  --color-primary: #f2f0e8;
+  --color-muted: #8b92a5;
+  --color-faint: #5d6478;
+
+  /* ---- semantic ------------------------------------------------------- */
+  --color-gold: #c9a15c;
+  --color-gold-bright: #dbb878;
+  --color-gold-deep: #a8834a;
+  /* Mid-tone for the card-face gradient, between gold-deep and ink. */
+  --color-gold-shadow: #8a6b3c;
+  --color-intelligence: #4cd9c0;
+  --color-intelligence-deep: #2fae98;
+  --color-alert: #e8604c;
+  --color-alert-deep: #c94a38;
+  --color-positive: #7fb09a;
+  --color-warning: #d99A4C;
+
+  /* ---- typography ----------------------------------------------------- */
+  /* Fraunces: headlines only (h1/h2). Inter: all UI text. IBM Plex Mono:
+     every monetary figure, account number and timestamp. */
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* ---- category colours (charts) -------------------------------------- */
+  /* Kept as tokens so chart code reads them via getComputedStyle instead of
+     duplicating hex literals in TypeScript. */
+  --color-cat-groceries: #7fb09a;
+  --color-cat-dining: #d99a4c;
+  --color-cat-transport: #6b8fc9;
+  --color-cat-shopping: #a98bc9;
+  --color-cat-utilities: #4cd9c0;
+  --color-cat-entertainment: #c97fa8;
+  --color-cat-healthcare: #e8604c;
+  --color-cat-education: #8b7fc9;
+  --color-cat-travel: #5fb8c9;
+  --color-cat-rent: #c9a15c;
+  --color-cat-investment: #6fa88a;
+  --color-cat-cash: #8b92a5;
+  --color-cat-transfer: #7aa5d2;
+  --color-cat-other: #5d6478;
+
+  /* Risk bands A-E, safest to riskiest. */
+  --color-band-a: #7fb09a;
+  --color-band-b: #a8bd7f;
+  --color-band-c: #c9a15c;
+  --color-band-d: #d9834c;
+  --color-band-e: #e8604c;
+}
+
+/*
+ * Mirror of the palette using the exact custom-property names from the design
+ * spec. Tailwind generates utilities from the @theme block above; these aliases
+ * exist so hand-written CSS and any inline style can use the specified names.
+ */
+:root {
+  --color-ink: #0b0e14;
+  --color-surface: #141926;
+  --color-surface-raised: #1b2233;
+  --color-text-primary: #f2f0e8;
+  --color-text-muted: #8b92a5;
+  --color-gold: #c9a15c;
+  --color-intelligence: #4cd9c0;
+  --color-alert: #e8604c;
+
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+    /* cv02-cv04 give Inter its more legible single-storey glyphs. */
+    font-feature-settings: 'cv02', 'cv03', 'cv04';
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+   * Fraunces is reserved for h1/h2. Applied by element so a headline cannot
+   * accidentally ship in Inter, with `.font-sans` available to opt out.
+   */
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-gold) 35%, transparent);
+    color: var(--color-text-primary);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-surface);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    border-radius: 9999px;
+    border: 2px solid var(--color-surface);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-faint);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* ---------------------------------------------------------------------- */
+  /* Numeric type                                                           */
+  /* ---------------------------------------------------------------------- */
+
+  /*
+   * Applied to EVERY monetary figure, account number, transaction amount and
+   * timestamp in the app. tabular-nums is what makes currency columns align;
+   * without it the ledger visibly jitters as values change.
+   */
+  .tnum {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+    letter-spacing: -0.01em;
+  }
+
+  /* Account numbers, card numbers, references: mono but wider tracking. */
+  .figure {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Surfaces                                                               */
+  /* ---------------------------------------------------------------------- */
+
+  .card {
+    @apply rounded-xl border border-line bg-surface;
+  }
+
+  .card-raised {
+    @apply rounded-xl border border-line-strong bg-surface-raised;
+  }
+
+  .card-hover {
+    @apply transition-colors hover:border-line-strong hover:bg-surface-raised;
+  }
+
+  /* Premium/trust framing: accounts, cards, loans. */
+  .card-premium {
+    @apply rounded-xl border bg-surface;
+    border-color: color-mix(in oklab, var(--color-gold) 32%, transparent);
+  }
+
+  /* AI output framing: fraud scores, anomaly callouts, credit reasoning. */
+  .card-intelligence {
+    @apply rounded-xl border;
+    border-color: color-mix(in oklab, var(--color-intelligence) 30%, transparent);
+    background-color: color-mix(in oklab, var(--color-intelligence) 6%, var(--color-surface));
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Forms                                                                  */
+  /* ---------------------------------------------------------------------- */
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-primary;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-line bg-ink px-3.5 py-2.5 text-sm
+           text-primary transition
+           placeholder:text-faint
+           focus:border-gold focus:outline-none
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .input:focus {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-gold) 22%, transparent);
+  }
+
+  .input-error {
+    border-color: color-mix(in oklab, var(--color-alert) 70%, transparent);
+  }
+
+  .input-error:focus {
+    border-color: var(--color-alert);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-alert) 22%, transparent);
+  }
+
+  /* Monetary inputs get mono treatment like every other figure. */
+  .input-figure {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Buttons                                                                */
+  /* ---------------------------------------------------------------------- */
+
+  /*
+   * Tailwind v4 only lets @apply reference real utilities, not other custom
+   * classes, so the shared base is repeated per variant rather than composed.
+   */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
+           text-sm font-semibold transition select-none
+           disabled:cursor-not-allowed disabled:opacity-55;
+  }
+
+  /* Gold on ink: 8.4:1 contrast, comfortably above the 4.5:1 requirement. */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
+           text-sm font-semibold transition select-none
+           disabled:cursor-not-allowed disabled:opacity-55
+           bg-gold text-ink hover:bg-gold-bright active:bg-gold-deep;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
+           text-sm font-semibold transition select-none
+           disabled:cursor-not-allowed disabled:opacity-55
+           border border-line-strong bg-surface-raised text-primary
+           hover:border-gold/40 hover:bg-surface;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
+           text-sm font-semibold transition select-none
+           disabled:cursor-not-allowed disabled:opacity-55
+           text-muted hover:bg-surface-raised hover:text-primary;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
+           text-sm font-semibold transition select-none
+           disabled:cursor-not-allowed disabled:opacity-55
+           bg-alert text-white hover:bg-alert-deep;
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Badges                                                                 */
+  /* ---------------------------------------------------------------------- */
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  /* Marks live AI output. Reserved for model-generated content. */
+  .badge-intelligence {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium;
+    color: var(--color-intelligence);
+    background-color: color-mix(in oklab, var(--color-intelligence) 14%, transparent);
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Tables                                                                 */
+  /* ---------------------------------------------------------------------- */
+
+  .table-header {
+    @apply border-b border-line bg-surface-raised text-left text-xs font-semibold
+           tracking-wide text-muted uppercase;
+  }
+
+  .skeleton {
+    @apply animate-pulse rounded;
+    background-color: var(--color-surface-raised);
+  }
+
+  /* Section titles use Fraunces, matching h2 without needing a heading level. */
+  .display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+}
+
+/* Recharts injects a focus outline on every bar and slice; suppress it and rely
+   on the container's focus ring instead. */
+.recharts-wrapper :focus,
+.recharts-surface:focus {
+  outline: none !important;
+}

@@ -1,0 +1,103 @@
+{
+  "name": "anomaly_iforest",
+  "version": "1.0.0",
+  "n_features": 14,
+  "threshold": 0.4243003702145379,
+  "threshold_rationale": "score at the 97% percentile of the training distribution, which holds the production alert rate near 3%",
+  "trained_at": "2026-07-31T16:42:05.150468+00:00",
+  "metrics": {
+    "test": {
+      "support": {
+        "total": 81103,
+        "positives": 2374
+      },
+      "contamination": 0.03,
+      "precision_at_3pct": 0.3765,
+      "lift_top_decile": 6.15,
+      "roc_auc": 0.8537,
+      "pr_auc": 0.362,
+      "precision_at_50": 0.94,
+      "operating_point": {
+        "threshold": 0.4243,
+        "flag_rate": 0.02928,
+        "precision": 0.3827,
+        "recall": 0.3829
+      }
+    },
+    "latency": {
+      "n": 300,
+      "mean_ms": 97.65,
+      "p50_ms": 92.598,
+      "p95_ms": 131.107,
+      "p99_ms": 147.121,
+      "max_ms": 150.907
+    },
+    "score_normalisation": {
+      "ref_min": -0.7795931923365833,
+      "ref_max": -0.3725223696731662
+    }
+  },
+  "training_info": {
+    "algorithm": "IsolationForest",
+    "params": {
+      "n_estimators": 300,
+      "max_samples": 512,
+      "contamination": 0.03,
+      "max_features": 0.85,
+      "bootstrap": false,
+      "random_state": 42
+    },
+    "supervision": "unsupervised; labels used only for evaluation",
+    "split": "GroupShuffleSplit by user_id",
+    "score_normalisation": {
+      "ref_min": -0.7795931923365833,
+      "ref_max": -0.3725223696731662
+    },
+    "rows": {
+      "train": 238328,
+      "test": 81103
+    },
+    "n_features": 14,
+    "python": "3.14.4",
+    "artifact_schema": "1.0.0"
+  },
+  "psi_baseline_bins": [
+    0.04323,
+    0.060778,
+    0.078183,
+    0.095557,
+    0.113652,
+    0.133804,
+    0.159676,
+    0.197457,
+    0.276755
+  ],
+  "psi_baseline_expected_pct": [
+    0.10000504,
+    0.09999664,
+    0.09999245,
+    0.10000504,
+    0.10000084,
+    0.10000084,
+    0.10000084,
+    0.09999664,
+    0.10000084,
+    0.10000084
+  ],
+  "feature_names": [
+    "amount_log",
+    "amount_to_user_mean",
+    "amount_zscore",
+    "category_spend_ratio",
+    "category_zscore",
+    "hour_sin",
+    "hour_cos",
+    "hour_deviation",
+    "txn_count_24h_ratio",
+    "days_since_category",
+    "merchant_is_new",
+    "distinct_categories_7d",
+    "weekly_spend_ratio",
+    "is_weekend"
+  ]
+}

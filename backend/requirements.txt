@@ -1,0 +1,38 @@
+# ---- Web framework ----
+fastapi==0.141.0
+uvicorn[standard]==0.52.0
+python-multipart==0.0.32
+
+# ---- Validation / settings ----
+pydantic[email]==2.13.4
+pydantic-settings==2.14.2
+
+# ---- Database ----
+SQLAlchemy==2.0.51
+# Uncomment for PostgreSQL (see docker-compose.yml):
+# psycopg[binary]==3.2.10
+
+# ---- Security ----
+bcrypt==5.0.0
+PyJWT==2.13.0
+pyotp==2.10.0
+
+# ---- Caching / rate limiting (OPTIONAL at runtime: in-memory fallback exists) ----
+redis==6.4.0
+
+# ---- ML stack ----
+# NOTE: SMOTE is implemented in-repo (app/ml/sampling.py) instead of pulling
+# imbalanced-learn, which lags scikit-learn releases.
+numpy==2.5.1
+pandas==2.3.3
+scikit-learn==1.9.0
+xgboost==3.3.0
+joblib==1.5.3
+scipy==1.18.0
+
+# ---- Reporting / export ----
+fpdf2==2.8.7
+
+# ---- Dev / test ----
+httpx==0.28.1
+pytest==9.1.1

@@ -1,0 +1,1 @@
+﻿"""IntelliBank backend application package."""

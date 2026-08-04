@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0B0E14" />
+    <meta
+      name="description"
+      content="IntelliBank — AI-Powered Banking for Everyone. A simulated banking platform demonstrating real-time fraud detection, ML credit scoring and spending anomaly detection. Educational project."
+    />
+
+    <!--
+      Design system typefaces:
+        Fraunces      headlines (h1/h2) only
+        Inter         all body text, labels, buttons, nav
+        IBM Plex Mono every monetary figure, account number and timestamp
+
+      preconnect shaves a round trip off the font fetch; `display=swap` renders
+      fallback text immediately rather than blocking paint on the webfont.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>IntelliBank — AI-Powered Banking for Everyone</title>
+  </head>
+  <!--
+    No colour utilities here: the background and text colour come from the design
+    tokens applied to `body` in index.css. Hardcoding them would override the
+    token system.
+  -->
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
