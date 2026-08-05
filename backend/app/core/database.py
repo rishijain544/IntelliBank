@@ -15,7 +15,9 @@ class Base(DeclarativeBase):
 
 
 def _make_engine():
-    url = settings.DATABASE_URL
+    # Normalised so provider-issued postgres:// URLs resolve to the psycopg
+    # driver rather than failing at connect time.
+    url = settings.normalised_database_url()
     kwargs: dict = {"echo": settings.SQL_ECHO, "future": True}
 
     if url.startswith("sqlite"):
@@ -23,7 +25,16 @@ def _make_engine():
         if ":memory:" in url:
             kwargs["poolclass"] = StaticPool
     else:
-        kwargs.update(pool_pre_ping=True, pool_size=10, max_overflow=20)
+        # pool_recycle guards against managed Postgres providers dropping idle
+        # connections: without it the first request after a quiet period fails
+        # with "server closed the connection unexpectedly".
+        kwargs.update(
+            pool_pre_ping=True,
+            pool_size=5,
+            max_overflow=10,
+            pool_recycle=280,
+            pool_timeout=30,
+        )
 
     eng = create_engine(url, **kwargs)
 

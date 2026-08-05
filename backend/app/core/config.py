@@ -103,10 +103,71 @@ class Settings(BaseSettings):
         return self.DATABASE_URL.startswith("sqlite")
 
     @property
+    def is_production(self) -> bool:
+        return self.APP_ENV.lower() in {"production", "prod"}
+
+    @property
     def artifact_path(self) -> Path:
         p = Path(self.ML_ARTIFACT_DIR)
         p.mkdir(parents=True, exist_ok=True)
         return p
+
+    def normalised_database_url(self) -> str:
+        """Coerce a provider-supplied URL into the driver form SQLAlchemy needs.
+
+        Render, Heroku and most managed Postgres providers hand out URLs starting
+        with ``postgres://``, which SQLAlchemy 2 rejects outright, and
+        ``postgresql://`` selects the psycopg2 driver that is not installed here.
+        Rewriting to ``postgresql+psycopg://`` avoids a deploy-time crash that is
+        otherwise reported as an opaque dialect error.
+        """
+        url = self.DATABASE_URL
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+psycopg://", 1)
+        elif url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+        return url
+
+    def production_warnings(self) -> list[str]:
+        """Configuration that is unsafe once the app is publicly reachable.
+
+        Returned rather than raised so the caller decides: the app refuses to
+        start on genuinely dangerous settings, but merely logs the rest.
+        """
+        problems: list[str] = []
+
+        if self.JWT_SECRET.startswith("dev-only") or len(self.JWT_SECRET) < 32:
+            problems.append(
+                "JWT_SECRET is the insecure default or shorter than 32 bytes. "
+                "Anyone who knows it can mint valid tokens for any account. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+            )
+        if self.is_sqlite:
+            problems.append(
+                "DATABASE_URL points at SQLite. On a platform with an ephemeral "
+                "filesystem every write is lost on restart. Use managed Postgres."
+            )
+        if self.DEBUG:
+            problems.append("DEBUG is enabled; tracebacks and SQL may leak to clients.")
+        if not self.COOKIE_SECURE:
+            problems.append("COOKIE_SECURE is false, so HSTS is not sent. Enable it behind TLS.")
+        if any(o.startswith("http://") for o in self.CORS_ORIGINS):
+            problems.append(f"CORS_ORIGINS contains a plaintext http:// origin: {self.CORS_ORIGINS}")
+        if "*" in self.CORS_ORIGINS:
+            problems.append(
+                "CORS_ORIGINS is a wildcard. Combined with credentialed requests this "
+                "permits any site to call the API as a signed-in user."
+            )
+        return problems
+
+    def fatal_production_errors(self) -> list[str]:
+        """Settings so dangerous that booting anyway would be irresponsible."""
+        fatal: list[str] = []
+        if self.JWT_SECRET.startswith("dev-only") or len(self.JWT_SECRET) < 32:
+            fatal.append("JWT_SECRET must be set to a strong unique value in production.")
+        if "*" in self.CORS_ORIGINS:
+            fatal.append("CORS_ORIGINS must list explicit origins, never '*'.")
+        return fatal
 
 
 @lru_cache

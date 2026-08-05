@@ -40,9 +40,33 @@ logger = logging.getLogger("intellibank")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting %s (%s)", settings.APP_NAME, settings.APP_ENV)
+
+    # Fail fast on unsafe production configuration. Refusing to boot is the
+    # correct behaviour: a public API signing tokens with a known dev secret is
+    # worse than a failed deploy, and the deploy log makes the cause obvious.
+    if settings.is_production:
+        fatal = settings.fatal_production_errors()
+        if fatal:
+            for problem in fatal:
+                logger.critical("FATAL CONFIG: %s", problem)
+            raise RuntimeError(
+                "Refusing to start in production with unsafe configuration: "
+                + " | ".join(fatal)
+            )
+        for warning in settings.production_warnings():
+            logger.warning("CONFIG: %s", warning)
+
     init_db()
     logger.info("Database ready: %s", "sqlite" if settings.is_sqlite else "postgresql")
     logger.info("Cache backend: %s", get_kv().name)
+
+    if settings.is_production and get_kv().name == "in-memory":
+        # Per-process state silently breaks rate limiting and token revocation
+        # once more than one worker or instance is running.
+        logger.warning(
+            "CONFIG: using the in-memory cache in production. Rate limits and token "
+            "revocation are per-process and will not hold across instances. Set REDIS_URL."
+        )
 
     status_map = warm_up()
     for name, loaded in status_map.items():

@@ -1,0 +1,63 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+#
+# Deploy IntelliBank backend. This describes both the web service (FastAPI) and
+# the managed Postgres database. Render provisions them in a single step via
+# "New Blueprint Instance".
+
+services:
+  - type: web
+    name: intellibank-api
+    runtime: python
+    plan: free  # 512 MB RAM, sleeps after inactivity, 750 free hours/month
+    region: oregon  # or your preferred region
+    branch: main
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    # Gunicorn with 1 uvicorn worker. Free tier has 512 MB and the ML stack
+    # measures ~350 MB/worker, so 2 would risk OOM under load.
+    startCommand: gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 90 --graceful-timeout 30 --keep-alive 5 --log-level info
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_NAME
+        value: IntelliBank
+      - key: DEBUG
+        value: false
+      - key: COOKIE_SECURE
+        # Must be true behind Render's TLS termination, or refresh tokens will
+        # not attach the Secure flag and HSTS will not be sent.
+        value: true
+      - key: CORS_ORIGINS
+        # The Vercel-deployed frontend. Update this after your first Vercel
+        # deploy once you know the production URL. Never use a wildcard.
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: intellibank-db
+          property: connectionString
+      - key: REDIS_URL
+        # Optional. Without it, rate limiting and token revocation fall back to
+        # in-memory (per-process) state. Fine for 1 worker; problematic past that.
+        sync: false
+      - key: JWT_SECRET
+        # REQUIRED. Generate with: python -c "import secrets; print(secrets.token_urlsafe(48))"
+        # Never commit this. Set it in the Render dashboard under Environment.
+        generateValue: true
+      - key: GEMINI_API_KEY
+        # Optional. Without it the assistant gracefully degrades to a rules-based
+        # router. Set it in the dashboard if you want Gemini function calling.
+        sync: false
+      - key: ASSISTANT_ENABLED
+        value: true
+
+databases:
+  - name: intellibank-db
+    databaseName: intellibank
+    # Free tier: 90-day expiration, 1 GB storage, shared CPU. Enough for a
+    # portfolio demo; upgrade to Starter ($7/mo) for 10 GB + dedicated resources.
+    plan: free
+    region: oregon
+    # Render's free Postgres pauses after 90 days. Accept the trade-off or
+    # upgrade: managed Postgres relieves every SQLite-on-ephemeral-disk problem
+    # and the schema is already portable.
