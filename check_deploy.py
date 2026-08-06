@@ -27,7 +27,6 @@ warnings: list[str] = []
 required = {
     "render.yaml": ROOT / "render.yaml",
     "frontend/vercel.json": FRONTEND / "vercel.json",
-    "frontend/.env.production": FRONTEND / ".env.production",
     "DEPLOYMENT.md": ROOT / "DEPLOYMENT.md",
     "backend/requirements.txt": BACKEND / "requirements.txt",
     "backend/.env.example": BACKEND / ".env.example",

@@ -79,10 +79,15 @@ The service sleeps after 15 minutes of inactivity on the free tier. First reques
 
 1. Go to https://vercel.com/new
 2. Import `rishijain544/IntelliBank`
-3. **Root Directory**: leave as `.` (Vercel auto-detects `frontend/` from `vercel.json`)
-4. **Framework Preset**: Vite
-5. **Build Command**: `npm run build`
-6. **Output Directory**: `dist`
+3. **Root Directory**: set to `frontend`
+   - Click **Edit** next to Root Directory and select the `frontend` folder.
+   - This is required. `vercel.json` lives at `frontend/vercel.json`, and Vercel
+     only reads config from the configured root — it does not search
+     subdirectories. Leaving this as `.` makes the build fail to find
+     `package.json`.
+4. **Framework Preset**: Vite (auto-detected once the root is correct)
+5. **Build Command**: `npm run build` (leave the default)
+6. **Output Directory**: `dist` (leave the default)
 
 ### 2.2 Set Environment Variable
 
