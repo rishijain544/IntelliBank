@@ -40,10 +40,10 @@ fpdf2==2.8.7
 # import even if no key is configured.
 google-genai==2.16.0
 
-# ---- Production server ----
-# uvicorn's worker class, driven by gunicorn for process supervision and
-# graceful restarts. Not needed for local `--reload` development.
-gunicorn==23.0.0
+# NOTE: no gunicorn. uvicorn is run directly in production because
+# `uvicorn.workers.UvicornWorker` is deprecated as of uvicorn 0.52, and the ML
+# stack (~350 MB resident) only fits one worker on a 512 MB instance anyway.
+# Render supervises and restarts the process itself.
 
 # ---- Dev / test ----
 httpx==0.28.1

@@ -44,10 +44,16 @@ export const tokenStore = {
   },
 };
 
+// 90s, not 30s: free hosting tiers suspend idle services, and the first request
+// after a spin-down has to wait for a full container cold start (~50s observed
+// on Render free). A 30s timeout aborts mid-wake and surfaces as a network
+// error, which looks identical to an outage to anyone visiting the demo.
+export const REQUEST_TIMEOUT_MS = 90_000;
+
 export const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 30_000,
+  timeout: REQUEST_TIMEOUT_MS,
 });
 
 /** Raised after a failed refresh so callers can distinguish it from a 403. */
@@ -92,7 +98,7 @@ async function refreshAccessToken(): Promise<string> {
   const { data } = await axios.post<TokenResponse>(
     `${BASE_URL}/auth/refresh`,
     { refresh_token: refreshToken },
-    { headers: { 'Content-Type': 'application/json' }, timeout: 30_000 },
+    { headers: { 'Content-Type': 'application/json' }, timeout: REQUEST_TIMEOUT_MS },
   );
   tokenStore.set(data.access_token, data.refresh_token);
   return data.access_token;
@@ -154,8 +160,12 @@ export function errorMessage(error: unknown): string {
       if (first) return `${first[0]}: ${first[1]}`;
     }
     if (typeof body?.detail === 'string') return body.detail;
-    if (error.code === 'ECONNABORTED') return 'The request timed out. Please try again.';
-    if (!error.response) return 'Cannot reach the server. Is the backend running?';
+    if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      return 'The server took too long to respond. It may be waking up from idle - please try again in a moment.';
+    }
+    if (!error.response) {
+      return 'Cannot reach the server. It may be starting up after a period of inactivity, so please retry shortly.';
+    }
     return error.message;
   }
 

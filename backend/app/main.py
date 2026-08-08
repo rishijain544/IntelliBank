@@ -12,6 +12,7 @@ Notable choices:
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -35,6 +36,37 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
 )
 logger = logging.getLogger("intellibank")
+
+
+def _maybe_seed_demo_data() -> None:
+    """Populate demo accounts if the database is empty.
+
+    Runs only when SEED_ON_STARTUP is enabled AND no users exist, so a redeploy
+    can never overwrite real data. Executed on a background thread because
+    seeding scores transactions through the ML models, which takes long enough
+    to trip a platform health check if it blocked startup.
+    """
+    from sqlalchemy import func, select
+
+    from app.core.database import SessionLocal
+    from app.models.user import User
+
+    try:
+        with SessionLocal() as db:
+            existing = db.execute(select(func.count(User.id))).scalar_one()
+
+        if existing:
+            logger.info("Seed skipped: database already has %d user(s)", existing)
+            return
+
+        logger.info("Empty database detected - seeding demo data...")
+        from app.seed import seed
+
+        # reset=False: create tables if needed but never drop existing ones.
+        seed(reset=False)
+        logger.info("Demo data seeded. Sign in with priya@intellibank.dev / Demo@Pass123")
+    except Exception:  # noqa: BLE001 - seeding must never take the API down
+        logger.exception("Demo seeding failed; the API is still serving normally")
 
 
 @asynccontextmanager
@@ -76,6 +108,14 @@ async def lifespan(app: FastAPI):
             "No ML artifacts found. Risk scoring will fall back to rules. "
             "Train them with: python -m app.ml.train --all"
         )
+
+    if settings.SEED_ON_STARTUP:
+        # Backgrounded so a slow seed cannot delay the health check and cause
+        # the platform to mark the deploy as failed.
+        threading.Thread(
+            target=_maybe_seed_demo_data, name="demo-seed", daemon=True
+        ).start()
+
     yield
     logger.info("Shutting down")
 

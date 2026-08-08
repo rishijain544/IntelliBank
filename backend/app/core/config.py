@@ -84,7 +84,14 @@ class Settings(BaseSettings):
     ASSISTANT_HISTORY_TURNS: int = 8
     RATE_LIMIT_ASSISTANT: str = "30/300"
 
-    # ---- CORS ----
+    # ---- Demo data ----
+    # When true, the app seeds demo users on startup IF the database has no
+    # users yet. Deliberately opt-in and never destructive: it is a no-op the
+    # moment any account exists, so it cannot wipe real data on a redeploy.
+    #
+    # This exists because Render's free tier provides no shell, so
+    # `python manage.py seed` cannot be run against the deployed database.
+    SEED_ON_STARTUP: bool = False
     CORS_ORIGINS: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",

@@ -59,7 +59,7 @@ if committed:
 # 3. Deployment dependencies present
 # -------------------------------------------------------------------------
 reqs = (BACKEND / "requirements.txt").read_text(encoding="utf-8")
-for dep in ["psycopg", "google-genai", "gunicorn"]:
+for dep in ["psycopg", "google-genai", "uvicorn"]:
     if dep not in reqs:
         errors.append(f"{dep} missing from requirements.txt")
 
