@@ -85,13 +85,20 @@ class Settings(BaseSettings):
     RATE_LIMIT_ASSISTANT: str = "30/300"
 
     # ---- Demo data ----
-    # When true, the app seeds demo users on startup IF the database has no
-    # users yet. Deliberately opt-in and never destructive: it is a no-op the
-    # moment any account exists, so it cannot wipe real data on a redeploy.
+    # Seeds demo users on startup IF the database has no users yet. Never
+    # destructive: it is a no-op the moment any account exists, so it cannot
+    # wipe real data on a redeploy.
     #
     # This exists because Render's free tier provides no shell, so
     # `python manage.py seed` cannot be run against the deployed database.
-    SEED_ON_STARTUP: bool = False
+    #
+    # Defaults to True rather than opt-in: setting it in render.yaml is not
+    # enough, because Render does not push new blueprint env vars to a service
+    # that already exists without a manual blueprint sync. A default means a
+    # fresh deploy of this project comes up with a usable demo with no dashboard
+    # steps. This is a simulated/educational project, so seeding an empty
+    # database is the useful default. Set SEED_ON_STARTUP=false to disable.
+    SEED_ON_STARTUP: bool = True
     CORS_ORIGINS: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
