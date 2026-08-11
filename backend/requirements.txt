@@ -31,6 +31,12 @@ xgboost==3.3.0
 joblib==1.5.3
 scipy==1.18.0
 
+# ---- Date arithmetic ----
+# Calendar-correct month stepping for EMI due dates (relativedelta). Pinned
+# explicitly rather than relied on as a pandas transitive dependency, so the
+# loan book keeps working if the ML stack is ever trimmed.
+python-dateutil==2.9.0.post0
+
 # ---- Reporting / export ----
 fpdf2==2.8.7
 

@@ -7,10 +7,11 @@ at training time.
 """
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Annotated, Any
 
+from dateutil.relativedelta import relativedelta
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -26,6 +27,7 @@ from app.ml.train_fraud import MODEL_NAME as FRAUD_MODEL
 from app.models.banking import Account, Transaction
 from app.models.enums import (
     AccountStatus,
+    AlertSeverity,
     AlertStatus,
     KycStatus,
     LoanStatus,
@@ -45,6 +47,7 @@ from app.schemas import (
     FraudAlertResponse,
     FraudReviewRequest,
     KycDecisionRequest,
+    LoanBookRow,
     LoanDecisionRequest,
     LoanResponse,
     MessageResponse,
@@ -55,6 +58,7 @@ from app.schemas import (
     UserSummary,
 )
 from app.services import banking, notifications as notif
+from app.services.email import render_basic_email, send_email
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -579,6 +583,231 @@ def decide_loan(
     db.commit()
     db.refresh(loan)
     return LoanResponse.model_validate(loan)
+
+
+# --------------------------------------------------------------------------- #
+# Loan book (active/disbursed portfolio)
+#
+# Distinct from the approval queue above: that one decides applications, this one
+# tracks repayment on loans already disbursed. Kept separate so neither view has
+# to carry filters that only make sense for the other.
+# --------------------------------------------------------------------------- #
+
+# The repayment position is derived, not stored: the schema keeps a schedule
+# origin (`first_emi_date`) and a counter (`emis_paid`) rather than a row per
+# instalment. Month arithmetic is not portable across SQLite and Postgres, so the
+# derivation happens in Python and the scan is bounded instead.
+_LOAN_BOOK_SCAN_CAP = 5000
+
+
+def _repayment_position(loan: Loan, today: date) -> tuple[date | None, int]:
+    """Return ``(next_due_date, days_overdue)`` for a disbursed loan.
+
+    Single definition on purpose: the reminder endpoint must judge "overdue" by
+    exactly the same rule the list endpoint displayed, otherwise an admin could
+    click a button the server then rejects.
+
+    A loan with no ``first_emi_date`` has no schedule yet, so it cannot be
+    overdue -- returns ``(None, 0)`` rather than guessing an origin date.
+    """
+    if loan.first_emi_date is None:
+        return None, 0
+
+    origin = loan.first_emi_date
+    if isinstance(origin, datetime):  # tolerate a datetime if the driver returns one
+        origin = origin.date()
+
+    next_due = origin + relativedelta(months=max(0, loan.emis_paid))
+    overdue = (today - next_due).days
+    return next_due, overdue if overdue > 0 else 0
+
+
+@router.get(
+    "/loans/book",
+    response_model=Page[LoanBookRow],
+    summary="Disbursed loans with EMI position and overdue status",
+)
+def loan_book(
+    admin: AdminUser,
+    db: Annotated[Session, Depends(get_db)],
+    pagination: PageParams,
+    overdue_only: Annotated[bool, Query(description="Only loans past their next due date")] = False,
+) -> Page[LoanBookRow]:
+    """List the active loan portfolio, most overdue first.
+
+    Sorting and filtering both key off a computed field, so the rows are ordered
+    in Python after derivation. The SQL side still does the selective work:
+    only disbursed loans are fetched, the borrower is eager-loaded to avoid an
+    N+1, and ``overdue_only`` pushes down the one condition that *is* portable
+    (a loan whose schedule has not started cannot be overdue).
+    """
+    today = datetime.now(UTC).date()
+
+    stmt = (
+        select(Loan)
+        .options(selectinload(Loan.user))
+        .where(Loan.status == LoanStatus.DISBURSED.value)
+    )
+    if overdue_only:
+        # Necessary-but-not-sufficient pre-filter: next_due_date is always >=
+        # first_emi_date, so anything scheduled to start in the future is safe to
+        # discard before the exact check below.
+        stmt = stmt.where(Loan.first_emi_date.is_not(None), Loan.first_emi_date <= today)
+
+    loans = db.execute(stmt.limit(_LOAN_BOOK_SCAN_CAP)).scalars().all()
+
+    rows: list[LoanBookRow] = []
+    for loan in loans:
+        next_due, days_overdue = _repayment_position(loan, today)
+        if overdue_only and days_overdue <= 0:
+            continue
+        borrower = loan.user
+        rows.append(
+            LoanBookRow(
+                id=loan.id,
+                application_ref=loan.application_ref,
+                borrower_id=loan.user_id,
+                borrower_name=borrower.full_name if borrower else "Unknown",
+                borrower_email=borrower.email if borrower else "",
+                loan_type=loan.loan_type,
+                approved_amount=loan.approved_amount,
+                interest_rate=loan.interest_rate,
+                tenure_months=loan.tenure_months,
+                emi_amount=loan.emi_amount,
+                outstanding_principal=loan.outstanding_principal,
+                emis_paid=loan.emis_paid,
+                emis_missed=loan.emis_missed,
+                first_emi_date=loan.first_emi_date,
+                next_due_date=next_due,
+                days_overdue=days_overdue,
+                disbursed_at=loan.disbursed_at,
+            )
+        )
+
+    # Most overdue first; `id` breaks ties so pagination is stable across calls
+    # rather than depending on whatever order the database returned.
+    rows.sort(key=lambda r: (-r.days_overdue, r.id))
+
+    total = len(rows)
+    window = rows[pagination.offset : pagination.offset + pagination.page_size]
+    return Page[LoanBookRow].model_validate(pagination.envelope(window, total))
+
+
+@router.post(
+    "/loans/{loan_id}/remind",
+    response_model=MessageResponse,
+    summary="Email an overdue borrower a payment reminder",
+)
+def remind_borrower(
+    loan_id: int,
+    request: Request,
+    admin: AdminUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> MessageResponse:
+    """Send a payment reminder for one overdue loan.
+
+    The overdue check is re-derived server-side rather than trusted from the
+    client, so a stale page cannot trigger a reminder on a loan that was paid in
+    the meantime.
+
+    Three things happen together: an email, an in-app notification, and an audit
+    entry. The email is *simulated* until a provider is configured, and a
+    delivery failure does not fail the request -- the notification and audit
+    record are the durable outcome, so losing the email must not roll them back.
+    """
+    loan = db.get(Loan, loan_id)
+    if loan is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Loan not found")
+
+    borrower = db.get(User, loan.user_id)
+    if borrower is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Borrower not found")
+
+    if loan.status != LoanStatus.DISBURSED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reminders apply only to disbursed loans",
+        )
+
+    today = datetime.now(UTC).date()
+    next_due, days_overdue = _repayment_position(loan, today)
+    if days_overdue <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This loan is not currently overdue",
+        )
+
+    emi = loan.emi_amount or Decimal("0")
+    outstanding = loan.outstanding_principal or Decimal("0")
+    due_label = next_due.isoformat() if next_due else "unknown"
+    day_word = "day" if days_overdue == 1 else "days"
+
+    subject = f"Payment reminder: loan {loan.application_ref}"
+    html = render_basic_email(
+        heading="Payment reminder",
+        intro=(
+            f"Hello {borrower.full_name}, our records show the EMI for your loan "
+            f"{loan.application_ref} has not yet been received. It was due on "
+            f"{due_label}, {days_overdue} {day_word} ago."
+        ),
+        rows=[
+            ("Loan reference", loan.application_ref),
+            ("EMI amount", f"{emi:,.2f}"),
+            ("Due date", due_label),
+            ("Days overdue", f"{days_overdue}"),
+            ("Outstanding principal", f"{outstanding:,.2f}"),
+        ],
+        outro=(
+            "Please arrange the payment at your earliest convenience. If you have "
+            "already paid, or if you would like to discuss your repayment schedule, "
+            "reply to this message and our team will follow up."
+        ),
+    )
+    email_sent = send_email(borrower.email, subject, html)
+
+    notif.notify(
+        db,
+        borrower,
+        notif_type=NotificationType.LOAN_UPDATE,
+        severity=AlertSeverity.HIGH if days_overdue >= 30 else AlertSeverity.MEDIUM,
+        title=f"Payment overdue: {loan.application_ref}",
+        body=(
+            f"Your EMI of {emi:,.2f} was due on {due_label} and is {days_overdue} "
+            f"{day_word} overdue. Outstanding principal is {outstanding:,.2f}."
+        ),
+        action_url="/app/loans",
+        meta={
+            "loan_ref": loan.application_ref,
+            "days_overdue": days_overdue,
+            "emi_amount": str(emi),
+            "next_due_date": due_label,
+        },
+        # A repayment reminder is account-critical, not marketing: a borrower
+        # should not be able to mute it via notification preferences.
+        respect_preferences=False,
+    )
+
+    write_audit(
+        db,
+        action="admin.loan_reminder",
+        actor=admin,
+        request=request,
+        entity_type="loan",
+        entity_id=loan.id,
+        target_user_id=loan.user_id,
+        summary=(
+            f"Reminder for {loan.application_ref}: {days_overdue} {day_word} overdue, "
+            f"EMI {emi:,.2f}" + ("" if email_sent else " (email delivery failed)")
+        ),
+    )
+    db.commit()
+
+    detail = (
+        f"Reminder sent to {borrower.email}."
+        if email_sent
+        else "Reminder recorded in-app; email delivery is unavailable."
+    )
+    return MessageResponse(message=detail)
 
 
 # --------------------------------------------------------------------------- #

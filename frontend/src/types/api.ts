@@ -211,6 +211,39 @@ export interface LoanApplicationResult {
   credit: CreditScore;
 }
 
+/**
+ * A disbursed loan as it appears in the admin loan book.
+ *
+ * Deliberately separate from `Loan`: the book answers "is this being repaid",
+ * so it carries borrower identity plus two fields the server computes at read
+ * time — `next_due_date` and `days_overdue`. `days_overdue` is 0 when nothing
+ * is outstanding, so `> 0` is the single test for overdue on both sides.
+ */
+export interface LoanBookRow {
+  id: number;
+  application_ref: string;
+
+  borrower_name: string;
+  borrower_email: string;
+  borrower_id: number;
+
+  loan_type: Loan['loan_type'];
+  approved_amount: string | null;
+  interest_rate: number | null;
+  tenure_months: number;
+  emi_amount: string | null;
+  outstanding_principal: string | null;
+
+  emis_paid: number;
+  emis_missed: number;
+
+  first_emi_date: string | null;
+  next_due_date: string | null;
+  days_overdue: number;
+
+  disbursed_at: string | null;
+}
+
 export interface FraudAlert {
   id: number;
   alert_ref: string;

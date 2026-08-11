@@ -66,6 +66,9 @@ export const qk = {
     user: (id: number) => ['admin', 'users', id] as const,
     fraudQueue: (params: Record<string, unknown>) => ['admin', 'fraud', params] as const,
     loanQueue: (params: Record<string, unknown>) => ['admin', 'loans', params] as const,
+    // Shares the ['admin', 'loans'] prefix on purpose: deciding an application
+    // can disburse it into the book, and prefix invalidation refreshes both.
+    loanBook: (params: Record<string, unknown>) => ['admin', 'loans', 'book', params] as const,
     models: (days: number) => ['admin', 'models', days] as const,
     analytics: (days: number) => ['admin', 'analytics', days] as const,
     audit: (params: Record<string, unknown>) => ['admin', 'audit', params] as const,

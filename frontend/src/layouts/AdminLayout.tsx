@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { clsx } from 'clsx';
 import {
   BarChart3,
+  BookOpen,
   Landmark,
   LayoutDashboard,
   LogOut,
@@ -32,7 +33,9 @@ const NAV = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/admin/users', label: 'Users', icon: Users },
   { to: '/admin/fraud', label: 'Fraud queue', icon: ShieldAlert, badge: 'fraud' as const },
-  { to: '/admin/loans', label: 'Loan queue', icon: Landmark, badge: 'loans' as const },
+  // `end` so the queue does not also highlight on its nested /loans/book route.
+  { to: '/admin/loans', label: 'Loan queue', icon: Landmark, badge: 'loans' as const, end: true },
+  { to: '/admin/loans/book', label: 'Loan book', icon: BookOpen },
   { to: '/admin/analytics', label: 'Model analytics', icon: BarChart3 },
 ];
 

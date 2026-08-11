@@ -560,6 +560,49 @@ class LoanApplicationResult(BaseModel):
     credit: CreditScoreResponse
 
 
+class LoanBookRow(BaseModel):
+    """A disbursed loan with its borrower and repayment position.
+
+    Separate from ``LoanResponse`` because the loan book answers a different
+    question: not "should this be approved" but "is this one being repaid".
+    That means it carries borrower identity (an admin chasing a payment needs a
+    name and an address to write to) plus two fields computed at read time
+    rather than stored:
+
+    * ``next_due_date`` - derived from ``first_emi_date`` plus the number of
+      EMIs already paid, because the schema stores a schedule origin and a
+      counter rather than a row per instalment.
+    * ``days_overdue`` - 0 when the next instalment is not yet due, so callers
+      can treat "> 0" as the single definition of overdue.
+
+    Both are recomputed on every read, so they cannot drift out of date the way
+    a persisted column would.
+    """
+
+    id: int
+    application_ref: str
+
+    borrower_name: str
+    borrower_email: str
+    borrower_id: int
+
+    loan_type: str
+    approved_amount: Decimal | None = None
+    interest_rate: float | None = None
+    tenure_months: int
+    emi_amount: Decimal | None = None
+    outstanding_principal: Decimal | None = None
+
+    emis_paid: int
+    emis_missed: int
+
+    first_emi_date: date | None = None
+    next_due_date: date | None = None
+    days_overdue: int = 0
+
+    disbursed_at: datetime | None = None
+
+
 # --------------------------------------------------------------------------- #
 # Fraud & anomaly
 # --------------------------------------------------------------------------- #

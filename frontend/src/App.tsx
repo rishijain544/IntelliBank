@@ -38,6 +38,7 @@ const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
 const AdminFraudQueue = lazy(() => import('./pages/admin/AdminFraudQueue'));
 const AdminLoanQueue = lazy(() => import('./pages/admin/AdminLoanQueue'));
+const AdminLoanBook = lazy(() => import('./pages/admin/AdminLoanBook'));
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
 
 function FullPageSpinner() {
@@ -151,6 +152,7 @@ export default function App() {
             <Route path="users" element={<AdminUsers />} />
             <Route path="fraud" element={<AdminFraudQueue />} />
             <Route path="loans" element={<AdminLoanQueue />} />
+            <Route path="loans/book" element={<AdminLoanBook />} />
             <Route path="analytics" element={<AdminAnalytics />} />
           </Route>
 
