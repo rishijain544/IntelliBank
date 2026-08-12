@@ -1,13 +1,85 @@
-# IntelliBank — AI-Powered Banking for Everyone
+<div align="center">
 
-> **Educational / portfolio project.** This is a **simulated** banking system. It holds no real
+# 🏦 IntelliBank — AI-Powered Banking for Everyone
+
+**A full-stack banking platform where three machine-learning models are wired into real banking logic — not bolted on as a demo.**
+Fraud scoring gates money movement, credit scoring prices loans, and anomaly detection drives customer insights.
+
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-intelli--bank.vercel.app-1E90FF?style=for-the-badge&logo=vercel&logoColor=white)](https://intelli-bank.vercel.app/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](#license)
+[![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](#architecture)
+[![Frontend](https://img.shields.io/badge/Frontend-React%2019-61DAFB?style=for-the-badge&logo=react&logoColor=black)](#architecture)
+
+**🔗 [Live Demo → intelli-bank.vercel.app](https://intelli-bank.vercel.app/)**
+
+</div>
+
+> ⚠️ **Educational / portfolio project.** This is a **simulated** banking system. It holds no real
 > money, is not connected to any payment network, is not a licensed financial institution, and
 > must not be used to store real personal or financial data. All accounts, balances, card numbers
 > and identity documents are synthetic.
 
-A full-stack banking platform where three machine-learning models are wired into real banking
-logic — not bolted on as a demo. Fraud scoring gates money movement, credit scoring prices loans,
-and anomaly detection drives customer insights.
+---
+
+## 📸 Screenshots
+
+<!--
+  Drop your images into a `docs/screenshots/` folder in the repo root and keep these filenames
+  (or update the paths below to match whatever you use). GitHub and most markdown renderers will
+  pick them up automatically once they exist in the repo.
+-->
+
+<table>
+  <tr>
+    <td width="50%" align="center">
+      <b>Landing Page</b><br/>
+      <img src="docs/screenshots/landing.png" alt="IntelliBank landing page with live model metrics" width="100%"/>
+    </td>
+    <td width="50%" align="center">
+      <b>Customer Dashboard</b><br/>
+      <img src="docs/screenshots/dashboard.png" alt="Customer dashboard with accounts overview" width="100%"/>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <b>Transfer — Live Fraud Score</b><br/>
+      <img src="docs/screenshots/transfer-fraud-score.png" alt="Transfer page showing live fraud score and contributing factors" width="100%"/>
+    </td>
+    <td width="50%" align="center">
+      <b>Loans — Live Credit Decision</b><br/>
+      <img src="docs/screenshots/loans-credit-decision.png" alt="Loan application with live credit decision and explanation" width="100%"/>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <b>Admin — Fraud Review Queue</b><br/>
+      <img src="docs/screenshots/admin-fraud-queue.png" alt="Admin fraud review queue" width="100%"/>
+    </td>
+    <td width="50%" align="center">
+      <b>Admin — Model Analytics & PSI Drift</b><br/>
+      <img src="docs/screenshots/admin-drift.png" alt="Admin model analytics with PSI drift monitoring" width="100%"/>
+    </td>
+  </tr>
+</table>
+
+*Screenshots pending — add your own images to `docs/screenshots/` using the filenames above, or swap in your own paths.*
+
+---
+
+## Table of Contents
+
+- [Why this project is different](#why-this-project-is-different)
+- [Model results](#model-results)
+- [Architecture](#architecture)
+- [Security](#security)
+- [Getting started](#getting-started)
+- [Demo credentials](#demo-credentials)
+- [Commands](#commands)
+- [API](#api)
+- [Pages](#pages)
+- [Testing](#testing)
+- [Limitations](#limitations)
+- [License](#license)
 
 ---
 
@@ -228,7 +300,12 @@ npm run dev                      # http://localhost:5173
 The Vite dev server proxies `/api` to the backend, so the app runs same-origin and CORS is not
 load-bearing in development.
 
-### Demo credentials
+> 🌐 Prefer not to set anything up? Try the hosted version at
+> **[intelli-bank.vercel.app](https://intelli-bank.vercel.app/)**.
+
+---
+
+## Demo credentials
 
 | Role | Email | Password |
 |---|---|---|
@@ -238,7 +315,9 @@ load-bearing in development.
 | Customer (thin file) | `kavya@intellibank.dev` | `Demo@Pass123` |
 | Customer (volatile) | `rohan@intellibank.dev` | `Demo@Pass123` |
 
-### Commands
+---
+
+## Commands
 
 ```bash
 # backend
@@ -381,6 +460,14 @@ Stated honestly, because a resume project that overclaims is worse than one that
 - Tokens are stored in `localStorage`, which is XSS-readable. Production would use httpOnly
   cookies; this trade-off was taken to keep the demo self-contained.
 
+---
+
 ## License
 
 MIT — for educational use. Not for handling real financial data.
+
+<div align="center">
+
+**[⬆ Back to top](#-intellibank--ai-powered-banking-for-everyone)** · **[🔗 Live Demo](https://intelli-bank.vercel.app/)**
+
+</div>
