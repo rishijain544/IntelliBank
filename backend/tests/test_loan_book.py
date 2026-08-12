@@ -362,3 +362,107 @@ def test_email_escapes_borrower_controlled_text():
 def test_send_email_rejects_invalid_address_without_raising():
     assert email_service.send_email("not-an-email", "Subject", "<p>Body</p>") is False
     assert email_service.outbox.stats()["failed"] == 1
+
+
+def test_outbox_drops_bodies_when_retention_is_off():
+    """Production keeps the counters but must not hold borrower PII in memory."""
+    box = email_service._Outbox(retain_bodies=False)
+    box.record(
+        email_service.SentMessage(
+            to="borrower@test.dev", subject="Payment reminder", html="<p>10,000.00</p>"
+        )
+    )
+
+    stats = box.stats()
+    assert stats["sent"] == 1
+    assert stats["retained"] == 0
+    assert stats["retains_bodies"] is False
+    assert box.recent() == []
+
+
+def test_outbox_retains_a_bounded_number_of_bodies():
+    box = email_service._Outbox(max_size=3, retain_bodies=True)
+    for i in range(10):
+        box.record(
+            email_service.SentMessage(to=f"u{i}@test.dev", subject=f"S{i}", html=f"<p>{i}</p>")
+        )
+
+    assert box.stats()["sent"] == 10
+    assert box.stats()["retained"] == 3
+    # Newest first, and only the last three survive.
+    assert [m.subject for m in box.recent()] == ["S9", "S8", "S7"]
+
+
+# ------------------------------------------------------------------ fully repaid
+
+
+@pytest.fixture
+def fully_repaid_loan(db_session):
+    """Every instalment paid, but the loan is still flagged DISBURSED.
+
+    The schedule origin is far enough in the past that a naive derivation would
+    project a due date behind `today` and call the loan overdue.
+    """
+    user = _make_user(db_session, email="repaid@test.dev")
+    return _seed_loan(
+        db_session,
+        user,
+        ref="LNREPAID01",
+        emis_paid=36,  # == tenure_months in _seed_loan
+        first_emi_date=datetime.now(UTC).date() - relativedelta(months=40),
+        outstanding="0.00",
+    )
+
+
+def test_fully_repaid_loan_is_not_overdue(client, admin_headers, fully_repaid_loan):
+    resp = client.get(f"{BASE}/admin/loans/book", headers=admin_headers)
+    assert resp.status_code == 200
+
+    row = resp.json()["items"][0]
+    assert row["application_ref"] == "LNREPAID01"
+    # No further instalment exists, so there is no next due date to project.
+    assert row["next_due_date"] is None
+    assert row["days_overdue"] == 0
+
+
+def test_fully_repaid_loan_is_excluded_from_overdue_filter(
+    client, admin_headers, fully_repaid_loan
+):
+    resp = client.get(
+        f"{BASE}/admin/loans/book", params={"overdue_only": True}, headers=admin_headers
+    )
+    assert resp.json()["total"] == 0
+
+
+def test_fully_repaid_loan_cannot_be_reminded(client, admin_headers, fully_repaid_loan):
+    """The borrower has paid; a reminder would be plainly wrong."""
+    resp = client.post(
+        f"{BASE}/admin/loans/{fully_repaid_loan.id}/remind", headers=admin_headers
+    )
+    assert resp.status_code == 400
+    assert "not currently overdue" in resp.json()["detail"]
+    assert email_service.outbox.recent() == []
+
+
+def test_final_instalment_still_counts_as_due(client, admin_headers, db_session):
+    """Guard on `>= tenure_months` must not swallow the last instalment.
+
+    With 35 of 36 paid there is exactly one instalment left, so an overdue final
+    payment must still be collectable.
+    """
+    user = _make_user(db_session, email="lastemi@test.dev")
+    loan = _seed_loan(
+        db_session,
+        user,
+        ref="LNLASTEMI1",
+        emis_paid=35,
+        first_emi_date=datetime.now(UTC).date() - relativedelta(months=36),
+    )
+
+    resp = client.get(f"{BASE}/admin/loans/book", headers=admin_headers)
+    row = resp.json()["items"][0]
+    assert row["next_due_date"] is not None
+    assert row["days_overdue"] > 0
+
+    reminded = client.post(f"{BASE}/admin/loans/{loan.id}/remind", headers=admin_headers)
+    assert reminded.status_code == 200

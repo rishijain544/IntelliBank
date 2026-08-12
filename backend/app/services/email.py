@@ -24,6 +24,8 @@ from html import escape as _escape
 from threading import Lock
 from typing import Any
 
+from app.core.config import settings
+
 logger = logging.getLogger("app.email")
 
 # Deliberately permissive: this validates shape, not deliverability. Anything
@@ -54,11 +56,19 @@ class _Outbox:
     Bounded because an unbounded list in a long-running process is a slow leak.
     Lock-guarded because FastAPI serves sync routes on a thread pool, so two
     requests can append concurrently.
+
+    Message bodies are retained only when ``retain_bodies`` is set. Nothing in
+    the application reads :meth:`recent` -- it exists so development and tests
+    can assert on what was composed -- and a rendered reminder contains the
+    borrower's name, address, loan reference and outstanding balance. Holding
+    that in process memory in production buys nothing and puts personal data in
+    any heap dump, so production keeps the counters and drops the bodies.
     """
 
-    def __init__(self, max_size: int = 200) -> None:
+    def __init__(self, max_size: int = 200, retain_bodies: bool = True) -> None:
         self._items: list[SentMessage] = []
         self._max = max_size
+        self._retain_bodies = retain_bodies
         self._sent = 0
         self._failed = 0
         self._lock = Lock()
@@ -66,6 +76,8 @@ class _Outbox:
     def record(self, message: SentMessage) -> None:
         with self._lock:
             self._sent += 1
+            if not self._retain_bodies:
+                return
             self._items.append(message)
             if len(self._items) > self._max:
                 del self._items[: len(self._items) - self._max]
@@ -84,6 +96,7 @@ class _Outbox:
                 "sent": self._sent,
                 "failed": self._failed,
                 "retained": len(self._items),
+                "retains_bodies": self._retain_bodies,
                 "transport": "simulated",
             }
 
@@ -94,7 +107,7 @@ class _Outbox:
             self._failed = 0
 
 
-outbox = _Outbox()
+outbox = _Outbox(retain_bodies=not settings.is_production)
 
 
 def html_to_text(html: str) -> str:

@@ -609,8 +609,17 @@ def _repayment_position(loan: Loan, today: date) -> tuple[date | None, int]:
 
     A loan with no ``first_emi_date`` has no schedule yet, so it cannot be
     overdue -- returns ``(None, 0)`` rather than guessing an origin date.
+
+    A loan whose instalments are all paid has no *next* instalment, so it also
+    returns ``(None, 0)``. Without this the derivation would keep projecting a
+    due date past the end of the tenure and report a fully repaid loan as
+    permanently overdue, which would both list it in the book and let an admin
+    send its borrower a payment reminder.
     """
     if loan.first_emi_date is None:
+        return None, 0
+
+    if loan.tenure_months and loan.emis_paid >= loan.tenure_months:
         return None, 0
 
     origin = loan.first_emi_date
