@@ -23,12 +23,6 @@ Fraud scoring gates money movement, credit scoring prices loans, and anomaly det
 
 ## 📸 Screenshots
 
-<!--
-  Drop your images into a `docs/screenshots/` folder in the repo root and keep these filenames
-  (or update the paths below to match whatever you use). GitHub and most markdown renderers will
-  pick them up automatically once they exist in the repo.
--->
-
 <table>
   <tr>
     <td width="50%" align="center">
@@ -42,27 +36,35 @@ Fraud scoring gates money movement, credit scoring prices loans, and anomaly det
   </tr>
   <tr>
     <td width="50%" align="center">
-      <b>Transfer — Live Fraud Score</b><br/>
-      <img src="docs/screenshots/transfer-fraud-score.png" alt="Transfer page showing live fraud score and contributing factors" width="100%"/>
+      <b>Loans — Live Credit Decision</b><br/>
+      <img src="docs/screenshots/loans-credit-decision.png" alt="Loan application with live credit decision, score and rate" width="100%"/>
     </td>
     <td width="50%" align="center">
-      <b>Loans — Live Credit Decision</b><br/>
-      <img src="docs/screenshots/loans-credit-decision.png" alt="Loan application with live credit decision and explanation" width="100%"/>
+      <b>Insights — Spending & Anomaly Nudges</b><br/>
+      <img src="docs/screenshots/insights.png" alt="Insights page with spending charts and anomaly nudges" width="100%"/>
     </td>
   </tr>
   <tr>
     <td width="50%" align="center">
-      <b>Admin — Fraud Review Queue</b><br/>
-      <img src="docs/screenshots/admin-fraud-queue.png" alt="Admin fraud review queue" width="100%"/>
+      <b>Security Center — Confirm / Dispute</b><br/>
+      <img src="docs/screenshots/security-center.png" alt="Security Center showing flagged transaction with confirm/dispute options" width="100%"/>
+    </td>
+    <td width="50%" align="center">
+      <b>Admin — Platform Overview</b><br/>
+      <img src="docs/screenshots/admin-overview.png" alt="Admin platform overview with customer, money movement and model health stats" width="100%"/>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center">
+      <b>Admin — Loan Approval Queue</b><br/>
+      <img src="docs/screenshots/admin-loan-queue.png" alt="Admin loan approval queue with model rate and decision status" width="100%"/>
     </td>
     <td width="50%" align="center">
       <b>Admin — Model Analytics & PSI Drift</b><br/>
-      <img src="docs/screenshots/admin-drift.png" alt="Admin model analytics with PSI drift monitoring" width="100%"/>
+      <img src="docs/screenshots/admin-model-analytics.png" alt="Admin model analytics dashboard with PSI drift monitoring across all three models" width="100%"/>
     </td>
   </tr>
 </table>
-
-*Screenshots pending — add your own images to `docs/screenshots/` using the filenames above, or swap in your own paths.*
 
 ---
 
